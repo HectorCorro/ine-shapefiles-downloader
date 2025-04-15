@@ -1,0 +1,9 @@
+#VS code
+.vscode
+
+#Folders
+/productos_ine_nacional
+/shapefiles_peepjf
+
+#Pycache
+__pycache__
