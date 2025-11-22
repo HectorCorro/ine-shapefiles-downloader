@@ -1,12 +1,81 @@
-#VS code
-.vscode
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-#Folders
-/productos_ine_nacional
-/shapefiles_peepjf
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
 
-#Pycache
-__pycache__
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+analytics/clean_votes.ipynb
+clean_votes.ipynb
+test_data.ipynb
 
-#DS_Store
+# Data directories
+data/
+data/raw/downloads_*
+data/raw/shapefiles_*
+data/raw/productos_*
+*.zip
+*.7z
+*.tar.gz
+*.csv
+*.parquet
+*.shp
+*.shx
+*.dbf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Project specific
+downloads_*/
+shapefiles_*/
+productos_*/
+*.html
+!README.html
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+
+# Files
+SETUP_COMPLETE.md
+QUICKSTART.md
+MIGRATION_GUIDE.md
+STRUCTURE.txt
+.cursorrules

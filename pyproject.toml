@@ -1,0 +1,12 @@
+[project]
+name = "mexico-electoral-analytics"
+version = "0.1.0"
+description = "Análisis de datos y tendencias electorales en México"
+requires-python = ">=3.11,<3.13"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["ingestion", "analytics", "dashboard"]

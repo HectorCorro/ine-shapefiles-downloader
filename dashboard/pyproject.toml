@@ -1,0 +1,19 @@
+[project]
+name = "dashboard"
+version = "0.1.0"
+description = "Dashboard module - Visualization layer for electoral data"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "keplergl>=0.3.0",
+    "folium>=0.15.0",
+    "geopandas>=0.14.0",
+    "matplotlib>=3.8.0",
+    "plotly>=5.18.0",
+    "mapclassify>=2.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+

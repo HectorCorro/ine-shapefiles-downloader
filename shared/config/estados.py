@@ -1,0 +1,76 @@
+"""
+Configuración centralizada de entidades federativas de México
+"""
+
+ENTIDADES = {
+    "01": "Aguascalientes",
+    "02": "Baja_California",
+    "03": "Baja_California_Sur",
+    "04": "Campeche",
+    "05": "Coahuila",
+    "06": "Colima",
+    "07": "Chiapas",
+    "08": "Chihuahua",
+    "09": "CDMX",
+    "10": "Durango",
+    "11": "Guanajuato",
+    "12": "Guerrero",
+    "13": "Hidalgo",
+    "14": "Jalisco",
+    "15": "Mexico",
+    "16": "Michoacan",
+    "17": "Morelos",
+    "18": "Nayarit",
+    "19": "Nuevo_Leon",
+    "20": "Oaxaca",
+    "21": "Puebla",
+    "22": "Queretaro",
+    "23": "Quintana_Roo",
+    "24": "San_Luis_Potosi",
+    "25": "Sinaloa",
+    "26": "Sonora",
+    "27": "Tabasco",
+    "28": "Tamaulipas",
+    "29": "Tlaxcala",
+    "30": "Veracruz",
+    "31": "Yucatan",
+    "32": "Zacatecas"
+}
+
+# Alias para compatibilidad con código existente (sin el 0 al inicio)
+ENTIDADES_LEGACY = {
+    "1": "Aguascalientes",
+    "2": "Baja_California",
+    "3": "Baja_California_Sur",
+    "4": "Campeche",
+    "5": "Coahuila",
+    "6": "Colima",
+    "7": "Chiapas",
+    "8": "Chihuahua",
+    "9": "CDMX",
+    "10": "Durango",
+    "11": "Guanajuato",
+    "12": "Guerrero",
+    "13": "Hidalgo",
+    "14": "Jalisco",
+    "15": "Mexico",
+    "16": "Michoacan",
+    "17": "Morelos",
+    "18": "Nayarit",
+    "19": "Nuevo_Leon",
+    "20": "Oaxaca",
+    "21": "Puebla",
+    "22": "Queretaro",
+    "23": "Quintana_Roo",
+    "24": "San_Luis_Potosi",
+    "25": "Sinaloa",
+    "26": "Sonora",
+    "27": "Tabasco",
+    "28": "Tamaulipas",
+    "29": "Tlaxcala",
+    "30": "Veracruz",
+    "31": "Yucatan",
+    "32": "Zacatecas"
+}
+
+

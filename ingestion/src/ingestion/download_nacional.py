@@ -1,8 +1,8 @@
-
-import os
 import time
 import py7zr
 import zipfile
+import shutil
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-import shutil
+from ingestion.utils.s3_utils import upload_folder_to_s3
 
 
 ENTIDADES = {
@@ -53,11 +53,21 @@ ENTIDADES = {
 formato = ['Geomedia Profesional', 'Geomedia Viewer', 'Shapefile']
 
 BASE_URL_NACIONAL = "https://cartografia.ine.mx/sige8/productosCartograficos/bases"
-DOWNLOAD_DIR_NACIONAL = os.path.abspath("downloads_nacional")
-SHAPEFILES_DIR_NACIONAL = os.path.abspath("shapefiles_nacional")
-PRODUCTOS_DIR_NACIONAL = os.path.abspath("productos_ine_nacional")
 
-def configurar_navegador(DOWNLOAD_DIR):
+# Get project root (3 levels up from this file)
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DATA_DIR = PROJECT_ROOT / "data"
+GEO_RAW_DIR = DATA_DIR / "geo_raw"
+
+# Create data directory structure if it doesn't exist
+DATA_DIR.mkdir(exist_ok=True)
+GEO_RAW_DIR.mkdir(exist_ok=True)
+
+DOWNLOAD_DIR_NACIONAL = GEO_RAW_DIR / "downloads_nacional"
+SHAPEFILES_DIR_NACIONAL = GEO_RAW_DIR / "shapefiles_nacional"
+PRODUCTOS_DIR_NACIONAL = GEO_RAW_DIR / "productos_ine_nacional"
+
+def configurar_navegador(download_dir: Path):
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
@@ -66,7 +76,7 @@ def configurar_navegador(DOWNLOAD_DIR):
     chrome_options.add_argument("--disable-dev-shm-usage")  # importante en Mac/Linux
 
     chrome_options.add_experimental_option("prefs", {
-        "download.default_directory": DOWNLOAD_DIR,
+        "download.default_directory": str(download_dir),
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True
@@ -76,31 +86,32 @@ def configurar_navegador(DOWNLOAD_DIR):
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-def descomprimir_recursivo(carpeta):
+def descomprimir_recursivo(carpeta: Path):
     """ 
     Recorre la carpeta dada y extrae recursivamente
     cualquier archivo .zip o .7z encontrado.
     Luego elimina ese archivo comprimido.
     """
-    for root, dirs, files in os.walk(carpeta):
-        for file in files:
-            ruta_file = os.path.join(root, file)
-            if file.lower().endswith(".zip"):
-                print(f"   Descomprimiendo (recursivo) .zip: {ruta_file}")
-                try:
-                    with zipfile.ZipFile(ruta_file, 'r') as zip_ref:
-                        zip_ref.extractall(root)
-                    os.remove(ruta_file)
-                except Exception as e:
-                    print(f"   Error al descomprimir {ruta_file}: {e}")
-            elif file.lower().endswith(".7z"):
-                print(f"   Descomprimiendo (recursivo) .7z: {ruta_file}")
-                try:
-                    with py7zr.SevenZipFile(ruta_file, mode='r') as z:
-                        z.extractall(path=root)
-                    os.remove(ruta_file)
-                except Exception as e:
-                    print(f"   Error al descomprimir {ruta_file}: {e}")
+    for archivo_path in carpeta.rglob('*'):
+        if not archivo_path.is_file():
+            continue
+            
+        if archivo_path.suffix.lower() == '.zip':
+            print(f"   Descomprimiendo (recursivo) .zip: {archivo_path}")
+            try:
+                with zipfile.ZipFile(archivo_path, 'r') as zip_ref:
+                    zip_ref.extractall(archivo_path.parent)
+                archivo_path.unlink()
+            except Exception as e:
+                print(f"   Error al descomprimir {archivo_path}: {e}")
+        elif archivo_path.suffix.lower() == '.7z':
+            print(f"   Descomprimiendo (recursivo) .7z: {archivo_path}")
+            try:
+                with py7zr.SevenZipFile(archivo_path, mode='r') as z:
+                    z.extractall(path=archivo_path.parent)
+                archivo_path.unlink()
+            except Exception as e:
+                print(f"   Error al descomprimir {archivo_path}: {e}")
 
 def seleccionar_opcion_parcial(sel, texto_parcial):
     """
@@ -149,15 +160,12 @@ def descarga_ine_nacional(driver, ent_id, nombre, formato):
     print("Botón clickeado. Esperando 5s antes de verificar descargas...")
     time.sleep(2)
 
-    #Buscar archivo descargado en DOWNLOAD_DIR_NACIONAL (.zip o .7z)
+    # Buscar archivo descargado en DOWNLOAD_DIR_NACIONAL (.zip o .7z)
     archivo_descargado = None
     for _ in range(30):
-        archivos = [f for f in os.listdir(DOWNLOAD_DIR_NACIONAL) if f.endswith(".zip") or f.endswith(".7z")]
+        archivos = list(DOWNLOAD_DIR_NACIONAL.glob('*.zip')) + list(DOWNLOAD_DIR_NACIONAL.glob('*.7z'))
         if archivos:
-            archivo_descargado = max(
-                [os.path.join(DOWNLOAD_DIR_NACIONAL, f) for f in archivos],
-                key=os.path.getctime
-            )
+            archivo_descargado = max(archivos, key=lambda p: p.stat().st_ctime)
             break
         time.sleep(1)
     if not archivo_descargado:
@@ -166,15 +174,15 @@ def descarga_ine_nacional(driver, ent_id, nombre, formato):
         return
 
     # Renombrar el archivo descargado con la nomenclatura deseada
-    ext = os.path.splitext(archivo_descargado)[1]
+    ext = archivo_descargado.suffix
     nuevo_nombre = f"{ent_id}_{nombre}_{formato.replace(' ', '_')}{ext}"
-    nuevo_path = os.path.join(DOWNLOAD_DIR_NACIONAL, nuevo_nombre)
-    os.rename(archivo_descargado, nuevo_path)
+    nuevo_path = DOWNLOAD_DIR_NACIONAL / nuevo_nombre
+    archivo_descargado.rename(nuevo_path)
     print(f"✅ Archivo renombrado a: {nuevo_path}")
 
     # Crear carpeta destino: PRODUCTOS_DIR_NACIONAL/{ent_id}_{nombre}/{formato}
-    carpeta_destino = os.path.join(PRODUCTOS_DIR_NACIONAL, f"{ent_id}_{nombre}", formato.replace(' ', '_'))
-    os.makedirs(carpeta_destino, exist_ok=True)
+    carpeta_destino = PRODUCTOS_DIR_NACIONAL / f"{ent_id}_{nombre}" / formato.replace(' ', '_')
+    carpeta_destino.mkdir(parents=True, exist_ok=True)
     
     # Extraer el archivo descargado según su extensión
     if ext.lower() == ".zip":
@@ -197,8 +205,9 @@ def descarga_ine_nacional(driver, ent_id, nombre, formato):
     # (Opcional) Descompresión recursiva para aplanar niveles de compresión si existieran
     descomprimir_recursivo(carpeta_destino)
     print(f"✅ Descompresión recursiva completada en: {carpeta_destino}")
+    upload_folder_to_s3(str(carpeta_destino), f"productos_ine_nacional/{ent_id}_{nombre}/{formato.replace(' ', '_')}", cleanup=False)
 
-def limpiar_directorio(ruta):
+def limpiar_directorio(ruta: Path):
     try:
         shutil.rmtree(ruta)
         print(f"Directorio eliminado: {ruta}")
@@ -206,8 +215,9 @@ def limpiar_directorio(ruta):
         print(f"Error al eliminar {ruta}: {e}")
 
 def main():
-    os.makedirs(DOWNLOAD_DIR_NACIONAL, exist_ok=True)
-    os.makedirs(PRODUCTOS_DIR_NACIONAL, exist_ok=True)
+    # Crear directorios necesarios
+    DOWNLOAD_DIR_NACIONAL.mkdir(parents=True, exist_ok=True)
+    PRODUCTOS_DIR_NACIONAL.mkdir(parents=True, exist_ok=True)
 
     driver = configurar_navegador(DOWNLOAD_DIR_NACIONAL)
 
