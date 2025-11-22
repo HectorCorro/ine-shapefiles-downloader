@@ -69,7 +69,7 @@ cd ine-shapefiles-downloader
 uv sync
 ```
 
-✅ ¡Listo! El workspace está configurado con 163 paquetes instalados.
+✅ ¡Listo! El workspace está configurado con n paquetes instalados.
 
 ### 4. Verificar instalación
 
@@ -77,7 +77,7 @@ uv sync
 python3 validate_setup.py
 ```
 
-Deberías ver: `✅ All checks passed! (25/25)`
+Deberías ver: `✅ All checks passed!`
 
 ## 📖 Uso
 
@@ -214,7 +214,7 @@ uv add webdriver-manager --package ingestion --force
 
 Verifica:
 1. Credenciales AWS configuradas (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-2. Bucket existe: `bucket01-labex`
+2. Bucket existe: `bucket-name`
 3. Permisos de escritura en el bucket
 
 ## 🎯 Comandos Rápidos
