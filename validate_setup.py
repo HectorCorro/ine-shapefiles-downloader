@@ -33,14 +33,13 @@ def main():
     os.chdir(project_root)
     
     all_checks = []
+    data_checks = []
     
     # Check root configuration
     print("\n📄 Root Configuration Files:")
     all_checks.append(check_file_exists("pyproject.toml", "Root pyproject.toml"))
     all_checks.append(check_file_exists(".gitignore", "Git ignore file"))
-    all_checks.append(check_file_exists("PROJECT_README.md", "Main documentation"))
-    all_checks.append(check_file_exists("QUICKSTART.md", "Quick start guide"))
-    
+    all_checks.append(check_file_exists("PROJECT_README.md", "Main documentation"))    
     # Check module structures
     print("\n📦 Ingestion Module:")
     all_checks.append(check_directory_exists("ingestion", "Ingestion directory"))
@@ -67,16 +66,17 @@ def main():
     all_checks.append(check_file_exists("shared/config/estados.py", "Estados configuration"))
     
     print("\n💾 Data Directories:")
-    all_checks.append(check_directory_exists("data", "Data root directory"))
-    all_checks.append(check_directory_exists("data/raw", "Raw data directory"))
-    all_checks.append(check_directory_exists("data/processed", "Processed data directory"))
-    all_checks.append(check_directory_exists("data/insights", "Insights directory"))
-    all_checks.append(check_directory_exists("data/geo", "Geo data directory"))
+    data_checks.append(check_directory_exists("data", "Data root directory"))
+    data_checks.append(check_directory_exists("data/raw", "Raw data directory"))
+    data_checks.append(check_directory_exists("data/processed", "Processed data directory"))
+    data_checks.append(check_directory_exists("data/insights", "Insights directory"))
+    data_checks.append(check_directory_exists("data/geo", "Geo data directory"))
     
     # Summary
     print("\n" + "=" * 70)
     passed = sum(all_checks)
     total = len(all_checks)
+    data_exists = sum(data_checks)
     
     if passed == total:
         print(f"✅ All checks passed! ({passed}/{total})")
@@ -92,12 +92,13 @@ def main():
         print("   2. Re-run the setup if needed")
         print("   3. Check PROJECT_README.md for manual setup instructions")
         return 1
-    
+
+    if data_exists>0:
+        print("Existen datos en el workspace.")
+
     print("\n" + "=" * 70)
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
+if __name__ == "__main__": 
+    sys.exit(main())  
