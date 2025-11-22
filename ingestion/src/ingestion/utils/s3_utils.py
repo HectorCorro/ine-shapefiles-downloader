@@ -12,10 +12,10 @@ env_path = Path(__file__).resolve().parents[4] / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Get AWS configuration from environment variables
-AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
+AWS_REGION = os.getenv("AWS_REGION")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "bucket01-labex")
+BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
 # Validate that required AWS credentials are set
 if not AWS_ACCESS_KEY_ID or not AWS_SECRET_ACCESS_KEY:
