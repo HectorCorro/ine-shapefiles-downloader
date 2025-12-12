@@ -1,0 +1,14 @@
+requests
+beautifulsoup4
+selenium
+webdriver-manager
+py7zr
+geopandas
+pandas
+numpy
+libpysal
+esda
+splot
+contextily
+matplotlib
+seaborn
