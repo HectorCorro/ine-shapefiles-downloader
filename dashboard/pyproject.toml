@@ -4,12 +4,38 @@ version = "0.1.0"
 description = "Dashboard module - Visualization layer for electoral data"
 requires-python = ">=3.11,<3.13"
 dependencies = [
+    # Existing visualization dependencies
     "keplergl>=0.3.0",
     "folium>=0.15.0",
     "geopandas>=0.14.0",
     "matplotlib>=3.8.0",
     "plotly>=5.18.0",
+    "kaleido>=0.2.1",
     "mapclassify>=2.6.0",
+    # FastAPI backend dependencies
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "python-multipart>=0.0.6",
+    # Spatial analysis dependencies
+    "libpysal>=4.9.0",
+    "esda>=2.5.0",
+    "splot>=1.1.5",
+    # Streamlit frontend dependencies
+    "streamlit>=1.30.0",
+    "requests>=2.31.0",
+    "Pillow>=10.2.0",
+    "streamlit-folium>=0.15.0",
+    # Utilities
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
 ]
 
 [build-system]

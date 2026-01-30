@@ -142,8 +142,21 @@ class GeometryMerger:
             entidad_str = str(entidad_id).zfill(2)
             shapefile_path = base_path / entidad_str / 'SECCION.shp'
         elif shapefile_type == 'nacional':
-            base_path = self.shapefile_base_dir / 'productos_ine_nacional' / folder_name
-            shapefile_path = base_path / 'Shapefile' / 'SECCION.shp'
+            base_path = self.shapefile_base_dir / 'productos_ine_nacional' / folder_name / 'Shapefile'
+            
+            # The nacional shapefiles have an extra subfolder with pattern: "01 AGUASCALIENTES"
+            # We need to find it dynamically since the state names vary
+            if base_path.exists():
+                # Look for the state subfolder (should be the only directory inside Shapefile/)
+                subdirs = [d for d in base_path.iterdir() if d.is_dir()]
+                if subdirs:
+                    shapefile_path = subdirs[0] / 'SECCION.shp'
+                else:
+                    # Fallback: try direct path
+                    shapefile_path = base_path / 'SECCION.shp'
+            else:
+                # Fallback: try direct path
+                shapefile_path = base_path / 'SECCION.shp'
         else:
             raise ValueError(f"Invalid shapefile_type: {shapefile_type}. Must be 'peepjf' or 'nacional'.")
         

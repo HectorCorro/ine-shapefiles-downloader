@@ -461,8 +461,8 @@ Examples:
     parser.add_argument(
         '--shapefile-type',
         choices=['peepjf', 'nacional'],
-        default='peepjf',
-        help='Type of shapefile to use (default: peepjf)'
+        default='nacional',
+        help='Type of shapefile to use (default: nacional)'
     )
     
     parser.add_argument(

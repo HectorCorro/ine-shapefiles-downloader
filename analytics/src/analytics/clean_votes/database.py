@@ -247,13 +247,25 @@ class ElectoralDatabase:
             logger.info(f"Loaded {len(df)} rows")
             
             # Convert to GeoDataFrame if requested and geometry available
-            if as_geodataframe and 'geometry' in df.columns and 'crs' in df.columns:
+            if as_geodataframe and 'geometry' in df.columns:
                 from shapely import wkt
+                
+                logger.info(f"Converting to GeoDataFrame (has_crs_column: {'crs' in df.columns})")
+                
+                # Convert WKT to geometry objects
                 df['geometry'] = df['geometry'].apply(lambda x: wkt.loads(x) if pd.notna(x) else None)
-                crs = df['crs'].iloc[0] if not df['crs'].isna().all() else None
+                
+                # Get CRS from column or use default
+                if 'crs' in df.columns:
+                    crs = df['crs'].iloc[0] if not df['crs'].isna().all() else 'EPSG:4326'
+                    df = df.drop(columns=['crs'])
+                else:
+                    crs = 'EPSG:4326'  # Default to WGS84 if no CRS column
+                    logger.info("No 'crs' column found, using default EPSG:4326")
+                
+                # Create GeoDataFrame
                 df = gpd.GeoDataFrame(df, geometry='geometry', crs=crs)
-                df = df.drop(columns=['crs'])
-                logger.info("Converted to GeoDataFrame")
+                logger.info(f"Converted to GeoDataFrame with CRS: {crs}")
         
         return df
     

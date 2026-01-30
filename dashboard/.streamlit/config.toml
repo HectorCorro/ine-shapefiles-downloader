@@ -1,0 +1,16 @@
+[theme]
+# Labexandria Corporate Theme
+primaryColor = "#1B9A8E"  # Labex Teal
+backgroundColor = "#FFFFFF"  # White
+secondaryBackgroundColor = "#ECF0F1"  # Cloud gray
+textColor = "#2C3E50"  # Charcoal
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false

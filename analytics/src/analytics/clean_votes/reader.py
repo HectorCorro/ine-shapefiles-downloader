@@ -87,28 +87,41 @@ class ElectoralDataReader:
         """
         try:
             # First, try reading the file to find the header row
-            with open(file_path, encoding=encoding) as f:
-                lines = f.readlines()
+            # Handle different line terminators (\n, \r\n, \r) by using pandas' lineterminator param
+            # Read sample to find header and delimiter
+            with open(file_path, encoding=encoding, newline='') as f:
+                # Read first 1MB to find header (much faster for large files)
+                sample = f.read(1024 * 1024)  # 1MB sample
+                # Split on any line terminator type
+                sample_lines = sample.replace('\r\n', '\n').replace('\r', '\n').split('\n')
             
-            header_row = self._find_header_row(lines)
+            header_row = self._find_header_row(sample_lines)
             
             if header_row is None:
                 logger.warning(
                     f"Could not find header row with indicators {self.header_indicators}. "
                     "Assuming data starts from first row."
                 )
-                # Try reading normally
-                return pd.read_csv(file_path, encoding=encoding, dtype=str)
+                # Try reading with pandas (it handles \r automatically)
+                return pd.read_csv(file_path, encoding=encoding, dtype=str, lineterminator='\r')
             
             logger.info(f"Found header at line {header_row}")
             
             # Detect delimiter from header line
-            delimiter = self._detect_delimiter(lines[header_row])
+            delimiter = self._detect_delimiter(sample_lines[header_row])
             logger.info(f"Detected delimiter: {repr(delimiter)}")
             
-            # Read from the header row onwards
-            csv_data = "".join(lines[header_row:])
-            df = pd.read_csv(StringIO(csv_data), sep=delimiter, dtype=str)
+            # Use pandas to read directly with lineterminator='\r' for CR-only files
+            # This is MUCH faster than reading entire file into memory
+            df = pd.read_csv(
+                file_path, 
+                sep=delimiter, 
+                dtype=str, 
+                encoding=encoding,
+                skiprows=header_row,
+                lineterminator='\r',  # Handle CR line terminators
+                on_bad_lines='skip'  # Skip any malformed lines
+            )
             
             # Clean up empty columns (sometimes pipe-delimited files have trailing pipes)
             empty_cols = [col for col in df.columns if str(col).strip() == '']

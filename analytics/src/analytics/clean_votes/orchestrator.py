@@ -72,7 +72,7 @@ class CleanVotesOrchestrator:
         election_date: Optional[str] = None,
         include_geometry: bool = False,
         shapefile_path: Optional[str] = None,
-        shapefile_type: str = 'peepjf',
+        shapefile_type: str = 'nacional',
         save_to_db: bool = True,
         save_geojson: bool = False,
         geojson_output_path: Optional[str] = None,
@@ -254,24 +254,61 @@ class CleanVotesOrchestrator:
         self,
         election_name: str,
         entidad_id: int,
-        as_geodataframe: bool = False
+        as_geodataframe: bool = False,
+        shapefile_path: Optional[str] = None
     ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
         """
         Load processed election data from database.
         
+        If as_geodataframe=True and geometry is not in the database,
+        it will automatically be loaded from shapefiles.
+        
         Args:
             election_name: Name of election (e.g., 'PRES_2024')
             entidad_id: State ID (1-32)
-            as_geodataframe: Whether to return as GeoDataFrame
+            as_geodataframe: Whether to return as GeoDataFrame (will auto-merge from shapefiles if needed)
+            shapefile_path: Optional explicit shapefile path (if not using auto-detection)
             
         Returns:
             DataFrame or GeoDataFrame with election data
         """
-        return self.database.load_electoral_data(
+        # First try loading from database (might have geometry already saved)
+        df = self.database.load_electoral_data(
             election_name=election_name,
             entidad_id=entidad_id,
             as_geodataframe=as_geodataframe
         )
+        
+        # If geodataframe was requested but we don't have geometry, merge it dynamically
+        if as_geodataframe and not isinstance(df, gpd.GeoDataFrame):
+            logger.info(f"No geometry in database, loading from shapefile for entidad {entidad_id}")
+            try:
+                gdf = self.geometry_merger.merge_with_shapefile(
+                    df=df,
+                    shapefile_path=shapefile_path,
+                    entidad_id=entidad_id,
+                    shapefile_type='nacional'  # Try nacional first (more common)
+                )
+                logger.info(f"Successfully merged geometry: {gdf['geometry'].notna().sum()} geometries")
+                return gdf
+            except FileNotFoundError as e:
+                # Try peepjf as fallback
+                logger.info("Nacional shapefile not found, trying peepjf...")
+                try:
+                    gdf = self.geometry_merger.merge_with_shapefile(
+                        df=df,
+                        shapefile_path=shapefile_path,
+                        entidad_id=entidad_id,
+                        shapefile_type='peepjf'
+                    )
+                    logger.info(f"Successfully merged geometry: {gdf['geometry'].notna().sum()} geometries")
+                    return gdf
+                except FileNotFoundError as e2:
+                    logger.warning(f"No shapefile found for entidad {entidad_id}: {e2}")
+                    logger.warning("Returning data without geometry")
+                    return df
+        
+        return df
     
     def list_available_elections(self) -> pd.DataFrame:
         """
