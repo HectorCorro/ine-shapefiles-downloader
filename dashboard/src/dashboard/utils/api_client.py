@@ -85,7 +85,7 @@ class APIClient:
     
     # Spatial endpoints
     
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=300, show_spinner=False)  # 5 minutes for faster refresh
     def compute_spatial_lag(
         _self,
         election_name: str,
@@ -105,7 +105,7 @@ class APIClient:
             }
         )
     
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=300, show_spinner=False)  # 5 minutes for faster refresh
     def compute_moran_i(
         _self,
         election_name: str,
@@ -190,7 +190,7 @@ class APIClient:
     
     # Visualization endpoints
     
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=300, show_spinner=False)  # 5 minutes, faster refresh for development
     def create_spatial_lag_map(
         _self,
         election_name: str,

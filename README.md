@@ -40,8 +40,13 @@ mexico-electoral-analytics/
 
 - **Python:** 3.11 o 3.12 (recomendado: 3.12)
 - **uv:** Gestor de paquetes ([instalar](https://docs.astral.sh/uv/))
-- **Sistema Operativo:** macOS, Linux o Windows
+- **Sistema Operativo:** 
+  - ✅ **macOS** (Intel y Apple Silicon)
+  - ✅ **Linux** (Ubuntu, Debian, Fedora)
+  - ✅ **Windows** (10 y 11)
 - **Espacio en disco:** ~3 GB (Python + dependencias + datos)
+
+> 📖 **Guía completa de compatibilidad**: Ver [`CROSS_PLATFORM_GUIDE.md`](CROSS_PLATFORM_GUIDE.md) para instrucciones detalladas por plataforma
 
 ## 🚀 Instalación
 
@@ -118,23 +123,53 @@ El notebook:
 - Limpia y estandariza columnas
 - Exporta Parquets a `data/processed/`
 
-### 🗺️ Generar Visualizaciones
+### 🗺️ Dashboard Interactivo (Nuevo)
+
+El dashboard incluye análisis espacial completo con **Moran's I** y **Spatial Lag**:
+
+#### Iniciar el Dashboard
+
+**Terminal 1 - API Backend:**
+```bash
+cd dashboard
+uv run uvicorn dashboard.api.main:app --reload --port 8000
+```
+
+**Terminal 2 - Frontend Streamlit:**
+```bash
+cd dashboard
+uv run streamlit run src/dashboard/app.py
+```
+
+**Acceder:**
+- Dashboard: http://localhost:8501
+- API Docs: http://localhost:8000/api/docs
+
+#### Características
+- 🗺️ **Análisis Espacial**: Moran's I, Spatial Lag, autocorrelación
+- 🌍 **Mapas Interactivos**: Exploración con tooltips detallados
+- 🔄 **Comparación entre Estados**: Análisis cross-sectional
+- 📈 **Análisis Temporal**: Tendencias a lo largo del tiempo
+- 🎨 **Diseño Corporativo**: Identidad visual Labexandria
+
+> 📖 Ver [`dashboard/README.md`](dashboard/README.md) para documentación completa
+
+### 🗺️ Visualizaciones Kepler.gl (Alternativa)
 
 ```bash
 cd dashboard/src/dashboard
 uv run python kepler_visualization.py
 ```
 
-Genera `kepler_multilayer_map.html` con capas:
-- Entidades federativas
-- Distritos Federales
-- Distritos Locales
-- Municipios
-- Secciones electorales
+Genera `kepler_multilayer_map.html` con capas geográficas.
 
-**Abrir en navegador:**
+**Abrir:**
 ```bash
+# macOS/Linux
 open kepler_multilayer_map.html
+
+# Windows
+start kepler_multilayer_map.html
 ```
 
 ## 📁 Estructura de Datos
@@ -175,11 +210,24 @@ uv add dash --package dashboard
 
 ## 📚 Documentación Adicional
 
+### General
 - **`PROJECT_README.md`** - Documentación técnica completa
+- **`CROSS_PLATFORM_GUIDE.md`** - Guía de compatibilidad macOS/Linux/Windows
 - **`QUICKSTART.md`** - Guía de referencia rápida
 - **`MIGRATION_GUIDE.md`** - Detalles de la migración al workspace
 - **`STRUCTURE.txt`** - Diagrama visual de la estructura
-- **`SETUP_COMPLETE.md`** - Resumen de la instalación
+
+### Dashboard
+- **`dashboard/README.md`** - Documentación del dashboard interactivo
+- **`dashboard/QUICKSTART.md`** - Inicio rápido del dashboard
+- **`dashboard/LABEXANDRIA_DESIGN_SYSTEM.md`** - Sistema de diseño corporativo
+- **`dashboard/API_AND_DESIGN_FIXES_SUMMARY.md`** - Historial de mejoras
+- **`dashboard/TROUBLESHOOTING.md`** - Solución de problemas
+
+### Analytics
+- **`analytics/CLEAN_VOTES_QUICKSTART.md`** - Limpieza de datos electorales
+- **`analytics/COLUMN_HOMOLOGATION_GUIDE.md`** - Homologación de columnas
+- **`analytics/PIPELINE_FEATURES.md`** - Características del pipeline
 
 ## 🗺️ Estándares de Datos Mexicanos
 
@@ -217,6 +265,22 @@ Verifica:
 2. Bucket existe: `bucket-name`
 3. Permisos de escritura en el bucket
 
+### Problemas Específicos por Plataforma
+
+**Windows:**
+- Usar PowerShell (no CMD)
+- Permitir Python/uvicorn en el Firewall
+- Si "path too long": Habilitar rutas largas en Registry
+
+**macOS:**
+- Apple Silicon: Compatible con ARM64
+- Si problemas con GDAL: `brew install gdal`
+
+**Linux:**
+- Instalar bibliotecas espaciales: `sudo apt install gdal-bin libgdal-dev`
+
+> Ver [`CROSS_PLATFORM_GUIDE.md`](CROSS_PLATFORM_GUIDE.md) para soluciones detalladas
+
 ## 🎯 Comandos Rápidos
 
 ```bash
@@ -236,6 +300,23 @@ uv run python --version
 ./cleanup_old_files.sh
 ```
 
+## 🖥️ Compatibilidad por Plataforma
+
+| Característica | macOS | Linux | Windows |
+|----------------|-------|-------|---------|
+| Ingestion (descarga shapefiles) | ✅ | ✅ | ✅ |
+| Analytics (procesamiento datos) | ✅ | ✅ | ✅ |
+| Dashboard FastAPI | ✅ | ✅ | ✅ |
+| Dashboard Streamlit | ✅ | ✅ | ✅ |
+| Análisis espacial (GeoPandas) | ✅ | ✅ | ✅ |
+| Base de datos SQLite | ✅ | ✅ | ✅ |
+| Jupyter Notebooks | ✅ | ✅ | ✅ |
+| Mapas interactivos | ✅ | ✅ | ✅ |
+
+**Conclusión: 100% compatible con las tres plataformas principales** 🎉
+
+> Ver [`CROSS_PLATFORM_GUIDE.md`](CROSS_PLATFORM_GUIDE.md) para instrucciones de instalación específicas
+
 ## 🤝 Contribuir
 
 1. Crear rama feature: `git checkout -b feature/nueva-funcionalidad`
@@ -253,6 +334,7 @@ Este proyecto es para uso académico/investigación. Datos electorales propiedad
 
 ---
 
-**Última actualización:** Noviembre 2025  
-**Versión:** 1.0.0  
-**Estado:** 🟢 Producción
+**Última actualización:** Enero 2026  
+**Versión:** 1.1.0  
+**Estado:** 🟢 Producción  
+**Plataformas:** macOS | Linux | Windows

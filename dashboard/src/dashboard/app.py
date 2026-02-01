@@ -194,6 +194,14 @@ def main():
         st.info("Start the API with: `cd dashboard && uv run uvicorn dashboard.api.main:app --reload`")
         return
     
+    # Cache controls
+    st.sidebar.divider()
+    if st.sidebar.button("🔄 Clear Cache", help="Clear all cached data and refresh visualizations"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.sidebar.success("✅ Cache cleared! Page will reload...")
+        st.rerun()
+    
     # Get available elections
     try:
         elections_list = api.get_elections_summary()["elections"]

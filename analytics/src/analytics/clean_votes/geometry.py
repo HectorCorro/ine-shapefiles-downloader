@@ -61,15 +61,38 @@ class GeometryMerger:
         
         shapefile_path = Path(shapefile_path)
         
-        if not shapefile_path.exists():
-            raise FileNotFoundError(f"Shapefile not found: {shapefile_path}")
+        # First try: Use the constructed/provided path
+        if shapefile_path.exists():
+            logger.info(f"Reading shapefile: {shapefile_path}")
+            gdf = gpd.read_file(shapefile_path)
+            logger.info(f"Loaded {len(gdf)} geometries")
+            
+            # Check if this shapefile has the correct ENTIDAD
+            if 'ENTIDAD' in gdf.columns and entidad_id is not None:
+                entidad_values = gdf['ENTIDAD'].unique()
+                if len(entidad_values) == 1 and int(entidad_values[0]) != entidad_id:
+                    logger.warning(f"Shapefile has wrong ENTIDAD ({entidad_values[0]}), expected {entidad_id}")
+                    logger.info("Searching for correct shapefile...")
+                    
+                    # Use smart search to find the correct file
+                    try:
+                        shapefile_path = self._find_shapefile_by_entidad(entidad_id, shapefile_type)
+                        gdf = gpd.read_file(shapefile_path)
+                        logger.info(f"Loaded {len(gdf)} geometries from correct file")
+                    except FileNotFoundError as e:
+                        logger.error(f"Could not find correct shapefile: {e}")
+                        # Continue with wrong data as fallback
+        else:
+            # File doesn't exist at expected path, use smart search
+            logger.warning(f"Shapefile not found at expected path: {shapefile_path}")
+            logger.info("Searching for correct shapefile...")
+            shapefile_path = self._find_shapefile_by_entidad(entidad_id, shapefile_type)
+            logger.info(f"Reading shapefile: {shapefile_path}")
+            gdf = gpd.read_file(shapefile_path)
+            logger.info(f"Loaded {len(gdf)} geometries")
         
-        logger.info(f"Reading shapefile: {shapefile_path}")
-        gdf = gpd.read_file(shapefile_path)
-        logger.info(f"Loaded {len(gdf)} geometries")
-        
-        # Prepare merge keys
-        gdf_prepared = self._prepare_geodataframe(gdf)
+        # Prepare merge keys (no need to override ENTIDAD anymore since we find the correct file)
+        gdf_prepared = self._prepare_geodataframe(gdf, expected_entidad=None)
         df_prepared = self._prepare_dataframe(df)
         
         # Perform merge
@@ -79,6 +102,59 @@ class GeometryMerger:
         logger.info(f"Rows with geometry: {gdf_merged['geometry'].notna().sum()}")
         
         return gdf_merged
+    
+    def _find_shapefile_by_entidad(
+        self,
+        entidad_id: int,
+        shapefile_type: str = 'nacional'
+    ) -> Path:
+        """
+        Search for shapefile with matching ENTIDAD value across all folders.
+        
+        This handles cases where shapefiles are in the wrong folders.
+        
+        Args:
+            entidad_id: State ID to find
+            shapefile_type: Type of shapefile ('nacional' or 'peepjf')
+            
+        Returns:
+            Path to the correct shapefile
+            
+        Raises:
+            FileNotFoundError: If no shapefile with matching ENTIDAD is found
+        """
+        import geopandas as gpd
+        
+        base_dir = self.shapefile_base_dir / ('productos_ine_nacional' if shapefile_type == 'nacional' else 'shapefiles_peepjf')
+        
+        if not base_dir.exists():
+            raise FileNotFoundError(f"Base directory not found: {base_dir}")
+        
+        logger.info(f"Searching for ENTIDAD={entidad_id} in {base_dir.name}...")
+        
+        # Search all SECCION.shp files
+        for shp_file in base_dir.rglob('SECCION.shp'):
+            try:
+                # Quick check: read just the ENTIDAD column
+                gdf = gpd.read_file(shp_file, rows=1)
+                
+                if 'ENTIDAD' in gdf.columns:
+                    # Read full file to check all ENTIDAD values
+                    gdf_full = gpd.read_file(shp_file)
+                    entidad_values = gdf_full['ENTIDAD'].unique()
+                    
+                    if len(entidad_values) == 1 and int(entidad_values[0]) == entidad_id:
+                        logger.info(f"✅ Found correct shapefile at: {shp_file.relative_to(self.shapefile_base_dir)}")
+                        return shp_file
+            except Exception as e:
+                # Skip files that can't be read
+                logger.debug(f"Skipping {shp_file}: {e}")
+                continue
+        
+        raise FileNotFoundError(
+            f"No shapefile found with ENTIDAD={entidad_id} in {shapefile_type} directory. "
+            f"You may need to re-download the correct shapefile."
+        )
     
     def _construct_shapefile_path(self, entidad_id: int, shapefile_type: str) -> Path:
         """
@@ -138,9 +214,22 @@ class GeometryMerger:
         # Construct path based on shapefile type
         if shapefile_type == 'peepjf':
             base_path = self.shapefile_base_dir / 'shapefiles_peepjf' / folder_name
-            # Format: 01, 02, ..., 32
+            
+            # Try expected path first (entidad_id as folder name)
             entidad_str = str(entidad_id).zfill(2)
             shapefile_path = base_path / entidad_str / 'SECCION.shp'
+            
+            # If not found, search dynamically for any SECCION.shp in subdirectories
+            if not shapefile_path.exists() and base_path.exists():
+                logger.info(f"Standard peepjf path not found, searching for SECCION.shp in {base_path}")
+                for subdir in base_path.iterdir():
+                    if subdir.is_dir():
+                        potential_path = subdir / 'SECCION.shp'
+                        if potential_path.exists():
+                            logger.info(f"Found SECCION.shp at: {potential_path}")
+                            shapefile_path = potential_path
+                            break
+                            
         elif shapefile_type == 'nacional':
             base_path = self.shapefile_base_dir / 'productos_ine_nacional' / folder_name / 'Shapefile'
             
@@ -150,7 +239,15 @@ class GeometryMerger:
                 # Look for the state subfolder (should be the only directory inside Shapefile/)
                 subdirs = [d for d in base_path.iterdir() if d.is_dir()]
                 if subdirs:
-                    shapefile_path = subdirs[0] / 'SECCION.shp'
+                    # Search in each subdirectory for SECCION.shp
+                    for subdir in subdirs:
+                        potential_path = subdir / 'SECCION.shp'
+                        if potential_path.exists():
+                            shapefile_path = potential_path
+                            break
+                    else:
+                        # No SECCION.shp found in subdirectories, try first subdir as fallback
+                        shapefile_path = subdirs[0] / 'SECCION.shp'
                 else:
                     # Fallback: try direct path
                     shapefile_path = base_path / 'SECCION.shp'
@@ -162,12 +259,13 @@ class GeometryMerger:
         
         return shapefile_path
     
-    def _prepare_geodataframe(self, gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    def _prepare_geodataframe(self, gdf: gpd.GeoDataFrame, expected_entidad: int = None) -> gpd.GeoDataFrame:
         """
         Prepare GeoDataFrame for merging (standardize column types).
         
         Args:
             gdf: Original GeoDataFrame
+            expected_entidad: Expected ENTIDAD value to override if shapefile has wrong value
             
         Returns:
             Prepared GeoDataFrame
@@ -179,6 +277,14 @@ class GeometryMerger:
             if gdf['ENTIDAD'].dtype == 'object':
                 gdf['ENTIDAD'] = pd.to_numeric(gdf['ENTIDAD'], errors='coerce')
             gdf['ENTIDAD'] = gdf['ENTIDAD'].astype('Int64')
+            
+            # Check if ENTIDAD is wrong (common issue with PEEPJF shapefiles)
+            if expected_entidad is not None:
+                unique_entidades = gdf['ENTIDAD'].dropna().unique()
+                if len(unique_entidades) == 1 and unique_entidades[0] != expected_entidad:
+                    logger.warning(f"Shapefile has wrong ENTIDAD value ({unique_entidades[0]}), "
+                                  f"overriding to {expected_entidad}")
+                    gdf['ENTIDAD'] = expected_entidad
         
         # Convert SECCION to Int64 if it exists
         if 'SECCION' in gdf.columns:
